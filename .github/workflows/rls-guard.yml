@@ -1,0 +1,50 @@
+name: rls-guard
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  clean-schema:
+    name: guard passes on clean schema
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: guard_clean
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/guard_clean
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash ci/run-guard.sh examples/schema-clean.sql pass
+
+  bad-schema:
+    name: guard catches known violations
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: guard_bad
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/guard_bad
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash ci/run-guard.sh examples/schema-bad.sql fail
